@@ -73,4 +73,4 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 The first usable campaign release should include all stages so it supports the shared table workflow.
 
-Current progress: steps 1–2 are implemented. The viewer uses the supplied Kislev image with clearly labeled sample markers and reports; campaign editing and saving are next.
+Current progress: steps 1–3 are implemented. The Kislev viewer supports local editing, the campaign clock, undo, and backup import/export. Shared publishing is next.
