@@ -20,7 +20,15 @@ The viewer uses `data/Map-Kislev-1-Color.jpg` (2829 × 2000). The bundled sample
 3. Open **Campaign** to set the campaign day. Reports age automatically; ordinary edits keep their original report dates. **Undo** reverses up to 50 changes in the current session.
 4. Saved changes are stored in this browser. Use **Campaign → Export backup** for a separate copy. In Edit mode, **Import backup** validates the file before replacing the campaign; the replacement can be undone.
 
-The initial campaign is labeled sample data. To begin with a clean slate, choose **Edit → Campaign → Start empty campaign**. You can also edit the sample markers and turn off **Sample dataset** when the data is ready. Drafts stay on the current device until shared publishing is implemented.
+The initial campaign is labeled sample data. To begin with a clean slate, choose **Edit → Campaign → Start empty campaign**. You can also edit the sample markers and turn off **Sample dataset** when the data is ready. Drafts stay in your browser until you publish.
+
+## Publishing and viewer updates
+
+1. Create a [fine-grained GitHub token](https://github.com/settings/personal-access-tokens/new) for `gbusey/interactive-campaign-map` with **Contents → Read and write**. The token's account needs permission to commit directly to `main`.
+2. Open **Edit → Campaign**, enter the token, and choose **Publish changes**. The page keeps the token in memory until you clear it or reload. The publish action commits `public/campaign.json` to `main` and triggers the Pages workflow. [GitHub Contents API permissions](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents)
+3. Once Pages deploys the commit, viewers in Browse mode pick it up on the next check, about every 30 seconds while the page is visible. Returning to the tab or choosing **Campaign → Check for updates** checks sooner.
+
+If a newer version exists, publishing stops and preserves your draft. Export it before choosing **Load published campaign**, then reapply your edits to the latest version. A draft from step 3 can publish directly if Pages still serves the original sample campaign.
 
 ## Local development
 
@@ -48,7 +56,7 @@ In repository Settings → Pages, set Source to **GitHub Actions**.
 - Pushes to `main` build and deploy `dist/` to Pages.
 - The workflow can also be run manually; only runs on `main` deploy.
 - No separate deployment branch or committed build output is needed.
-- Deployment uses GitHub's built-in workflow token; no personal token or repository secret is required for this release.
+- The deployment workflow uses GitHub's built-in token. The editor's publishing token is entered in the browser.
 
 Once merged and deployed, the site will be available at <https://gbusey.github.io/interactive-campaign-map/>. The feature branch does not publish to the live site.
 
@@ -56,5 +64,4 @@ Once merged and deployed, the site will be available at <https://gbusey.github.i
 
 ## Next steps
 
-1. Campaign publishing and automatic viewer updates.
-2. Route measurement and PF2e travel calculations.
+Route measurement and PF2e travel calculations.

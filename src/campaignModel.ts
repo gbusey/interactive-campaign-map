@@ -80,11 +80,11 @@ export function campaignReducer(state: CampaignHistory, action: { type: 'replace
   return { current: action.data, past: [...state.past.slice(-49), state.current] }
 }
 
-export function readDraft(read: () => string | null, fallback: CampaignData) {
+export function readDraft<T>(read: () => string | null, fallback: T, decode: (raw: string) => T) {
   try {
     const raw = read()
     if (raw === null) return { data: fallback, error: '', raw: '' }
-    try { return { data: parseCampaign(raw), error: '', raw: '' } }
+    try { return { data: decode(raw), error: '', raw: '' } }
     catch { return { data: fallback, error: 'The saved draft could not be read. It has been preserved; export it before choosing a replacement.', raw } }
   } catch { return { data: fallback, error: 'Browser storage is unavailable. Changes stay in memory; export a backup before leaving.', raw: '' } }
 }
