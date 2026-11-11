@@ -1,7 +1,7 @@
 import mapImage from '../data/Map-Kislev-1-Color.jpg'
 
 import type { Allegiance, Location, MarkerType, CampaignData } from './campaignModel'
-import { MAP_WIDTH, MAP_HEIGHT } from './campaignModel'
+import { MAP_WIDTH, MAP_HEIGHT, validateCampaign } from './campaignModel'
 export { markerTypes } from './campaignModel'
 export type { Location, MarkerType } from './campaignModel'
 
@@ -28,7 +28,7 @@ export const campaign = {
   ] satisfies Location[],
 }
 
-export const initialCampaign: CampaignData = {
+export const initialCampaign: CampaignData = validateCampaign({
   schemaVersion: 1, mapId: 'kislev', day: campaign.day,
   sampleMarkers: campaign.sampleMarkers, locations: campaign.locations,
-}
+})

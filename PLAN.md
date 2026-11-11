@@ -45,7 +45,7 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 - Edits appear immediately on the editing device and autosave as a local draft.
 - An explicit **Publish changes** button batches edits and writes campaign data through the GitHub Contents API, triggering Pages deployment. No manual JSON editing or Git commands are needed during sessions.
-- Publishing requires a repository-authorized GitHub credential configured on the GM's laptop, kept out of published assets. Opening the editor does not grant repository write access. Exact credential setup remains an implementation decision.
+- Publishing uses a fine-grained GitHub token scoped to this repository with Contents write access. The editor holds it in page memory for the session.
 - Viewers check for a new campaign version approximately every **30 seconds**, and immediately on returning to the tab. Updates arrive after deployment plus the polling interval; this is eventual synchronization rather than instant collaboration.
 - Refresh campaign data without reloading the page or resetting each viewer's zoom, position, selected marker, filters, or draft route. Version checks must avoid stale caches.
 - Show viewer update/offline status and a brief update notification. Distinguish local saves, publishing, and successful publication; preserve drafts when publishing fails and allow retry.
@@ -73,4 +73,4 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 The first usable campaign release should include all stages so it supports the shared table workflow.
 
-Current progress: steps 1–3 are implemented. The Kislev viewer supports local editing, the campaign clock, undo, and backup import/export. Shared publishing is next.
+Current progress: steps 1–4 are implemented. The editor supports local drafts and GitHub publishing, and viewers check for updates from Pages. Route measurement and travel estimates are next.

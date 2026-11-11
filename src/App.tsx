@@ -8,7 +8,9 @@ import { downloadText, useCampaign } from './useCampaign'
 
 type Panel = 'search' | 'layers' | 'details' | 'editor' | 'campaign' | null
 export default function App() {
-  const store = useCampaign()
+  const [editMode, setEditMode] = useState(false)
+  const [publishingToken, setPublishingToken] = useState('')
+  const store = useCampaign(editMode)
   const { data } = store
   const [panel, setPanel] = useState<Panel>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -17,7 +19,6 @@ export default function App() {
   const [dirty, setDirty] = useState(false)
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
-  const [editMode, setEditMode] = useState(false)
   const [placement, setPlacement] = useState<'add' | 'move' | null>(null)
   const [query, setQuery] = useState('')
   const [dayDraft, setDayDraft] = useState(String(data.day))
@@ -54,6 +55,12 @@ export default function App() {
     else if (panel) heading.current?.focus({ preventScroll: true })
   }, [panel, selectedId])
   useEffect(() => { setDayDraft(String(data.day)) }, [data.day])
+  useEffect(() => {
+    if (panel === 'details' && !selected) {
+      setPanel(null)
+      setSelectedId(null)
+    }
+  }, [panel, selected])
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (dirtyRef.current) { event.preventDefault(); event.returnValue = '' }
@@ -138,7 +145,10 @@ export default function App() {
       </nav>
       {editMode && !placement && <div className="edit-tools"><button type="button" onClick={beginAdd}>Add marker</button><button type="button" disabled={!store.canUndo} onClick={undo}>Undo</button></div>}
       {placement && <div className="placement-hint" role="status">{placement === 'add' ? 'Place new marker' : `Move ${selected?.name}`} · tap inside map or use crosshair <button type="button" onClick={() => setPlacement(null)}>Cancel</button></div>}
-      <div className="save-status" role="status">{store.error ? 'Local save needs attention' : dirty ? 'Unsaved marker form' : notice || `${data.sampleMarkers ? 'Sample · ' : ''}Saved on this device`}</div>
+      <div className="save-status" role="status">
+        {data.sampleMarkers && 'Sample · '}
+        {store.error ? 'Local save needs attention' : dirty ? 'Unsaved marker form' : store.status}
+      </div>
       {store.error && <div className="storage-error" role="alert">{store.error} <button type="button" onClick={() => togglePanel('campaign')}>Backups</button></div>}
       {store.editError && !panel && <div className="storage-error" role="alert">{store.editError}</div>}
     </section>
@@ -182,7 +192,30 @@ export default function App() {
             <button type="submit">Set day</button><p className="muted">Reports age with the campaign clock. Day cannot precede an existing report (day {latestReport}).</p>
           </form> : <p>Campaign day {data.day}</p>}
           {editMode && <label className="layer-option"><input type="checkbox" checked={data.sampleMarkers} onChange={event => store.replace({ ...data, sampleMarkers: event.target.checked })} />Sample dataset</label>}
+          {store.conflict && <div className="detail-actions">
+            <p className="form-error" role="alert">A newer published version is available. Export your draft to keep a copy before loading it.</p>
+            <button type="button" disabled={store.publishing} onClick={() => {
+              if (!window.confirm('Load the published campaign on this device? Export your draft first if you want to keep it.')) return
+              store.usePublished?.()
+              setNotice('')
+              setSelectedId(null)
+            }}>Load published campaign</button>
+          </div>}
+          {editMode && <form className="editor-form publish-form" onSubmit={event => {
+            event.preventDefault()
+            setNotice('')
+            void store.publish(publishingToken)
+          }}>
+            <label>GitHub publishing token
+              <input type="password" value={publishingToken} onChange={event => setPublishingToken(event.target.value)} autoComplete="off" spellCheck={false} autoCapitalize="none" disabled={store.publishing} />
+            </label>
+            <button type="submit" className="primary-button" disabled={!store.canPublish || !publishingToken.trim()}>{store.publishing ? 'Publishing…' : 'Publish changes'}</button>
+            {publishingToken && <button type="button" disabled={store.publishing} onClick={() => setPublishingToken('')}>Clear token</button>}
+            {store.publishError && <p className="form-error" role="alert">{store.publishError}</p>}
+            {store.awaiting && <p className="muted">Committed to GitHub. Viewers will receive the update after Pages deploys it.</p>}
+          </form>}
           <div className="detail-actions">
+            <button type="button" onClick={store.checkNow}>Check for updates</button>
             <button type="button" onClick={() => downloadText(serializeCampaign(data), `kislev-day-${data.day}.json`)}>Export backup</button>
             {editMode && <>
               <button type="button" disabled={!store.canUndo} onClick={undo}>Undo last change</button>
@@ -197,7 +230,7 @@ export default function App() {
             <button type="button" onClick={() => { if (window.confirm('Replace the saved draft with the campaign currently visible? Export the unreadable draft first if needed.')) { store.resumeSaving(); setNotice('Local saving resumed') } }}>Use current campaign</button>
             <button type="button" onClick={() => { if (window.confirm('Restore the bundled sample campaign? Export the preserved draft first if needed.')) { store.replace(initialCampaign); store.resumeSaving() } }}>Restore sample campaign</button>
           </div>}
-          <p className="muted">Saved on this device only. Export backups to keep a separate copy. Shared publishing comes next.</p>
+          {notice && store.changed && <p className="muted">{notice}</p>}
         </>}
       </div>
     </aside>}
