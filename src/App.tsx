@@ -1,40 +1,106 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { allegianceLabels, campaign, markerTypes, typeLabels } from './campaign'
+import type { Location, MarkerType } from './campaign'
+import MapViewer from './MapViewer'
+
 export default function App() {
+  const [panel, setPanel] = useState<'search' | 'layers' | 'details' | null>(null)
+  const [selected, setSelected] = useState<Location | null>(null)
+  const [query, setQuery] = useState('')
+  const [visibleTypes, setVisibleTypes] = useState<MarkerType[]>([...markerTypes])
+  const previousFocus = useRef<HTMLElement | null>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const searchButton = useRef<HTMLButtonElement>(null)
+
+  const selectLocation = useCallback((location: Location) => {
+    previousFocus.current = document.activeElement as HTMLElement
+    setVisibleTypes(types => types.includes(location.type) ? types : [...types, location.type])
+    setSelected(location)
+    setPanel('details')
+  }, [])
+
+  const closePanel = useCallback(() => {
+    setPanel(null)
+    setSelected(null)
+    const target = previousFocus.current
+    if (target?.isConnected) target.focus({ preventScroll: true })
+    else searchButton.current?.focus({ preventScroll: true })
+  }, [])
+
+  useEffect(() => {
+    if (panel === 'search') searchInput.current?.focus()
+    else if (panel) heading.current?.focus({ preventScroll: true })
+  }, [panel, selected])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && panel) closePanel()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [panel, closePanel])
+
+  function togglePanel(next: 'search' | 'layers') {
+    if (panel === next) { closePanel(); return }
+    previousFocus.current = document.activeElement as HTMLElement
+    setSelected(null)
+    setPanel(next)
+  }
+
+  const results = campaign.locations.filter(location => location.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+  const intelAge = selected?.reportedOnDay == null ? null : campaign.day - selected.reportedOnDay
+
   return (
-    <div className="app-shell">
-      <header className="site-header">
-        <a className="wordmark" href={import.meta.env.BASE_URL}>
-          <span className="crest" aria-hidden="true">K</span>
-          <span>Kislev<span className="wordmark-caption">Campaign map</span></span>
-        </a>
-        <span className="edition">Pathfinder Second Edition</span>
-      </header>
+    <main className={`map-app${panel ? ' panel-open' : ''}`}>
+      <section className="map-area" aria-label="Map viewer">
+        <MapViewer visibleTypes={visibleTypes} selected={selected} onSelect={selectLocation} />
+        <nav className="map-toolbar" aria-label="Map tools">
+          <button ref={searchButton} type="button" aria-expanded={panel === 'search'} aria-controls={panel === 'search' ? 'map-panel' : undefined} onClick={() => togglePanel('search')}>Search</button>
+          <button type="button" aria-expanded={panel === 'layers'} aria-controls={panel === 'layers' ? 'map-panel' : undefined} onClick={() => togglePanel('layers')}>Layers</button>
+        </nav>
+        {campaign.sampleMarkers && <span className="sample-indicator">Sample markers</span>}
+      </section>
 
-      <main id="main-content">
-        <section className="welcome" aria-labelledby="welcome-title">
-          <p className="eyebrow">The northern frontier</p>
-          <h1 id="welcome-title">Every march.<br />Every stronghold.</h1>
-          <p className="intro">A shared view of the war in Kislev, built around the intelligence your party gathers.</p>
-
-          <div className="map-placeholder">
-            <span className="compass" aria-hidden="true">✧</span>
-            <h2>The campaign map is coming next</h2>
-            <p>This is the first foundation release. The interactive map, editor, and travel tools are still to come.</p>
-          </div>
-        </section>
-
-        <aside className="field-notes" aria-labelledby="field-notes-title">
-          <p className="eyebrow">At the table</p>
-          <h2 id="field-notes-title">One campaign.<br />A common picture.</h2>
-          <ul className="feature-list">
-            <li><h3>Follow the front</h3><p>Settlements, fortresses, and armies, with allegiance and last-known intelligence.</p></li>
-            <li><h3>Keep everyone informed</h3><p>Planned shared updates from the on-page editor to every player’s map.</p></li>
-            <li><h3>Plan the journey</h3><p>Planned route measurements and travel estimates using PF2e rules.</p></li>
-          </ul>
-          <p className="device-note">Made for the laptop at the head of the table and the phones around it.</p>
-        </aside>
-      </main>
-
-      <footer><span>Kislev campaign atlas</span><span>Foundation release · 0.1.0</span></footer>
-    </div>
+      {panel && <aside id="map-panel" className="map-panel" aria-labelledby="panel-title">
+        <header className="panel-header">
+          <h1 ref={heading} tabIndex={-1} id="panel-title">{panel === 'search' ? 'Search' : panel === 'layers' ? 'Layers' : selected?.name}</h1>
+          <button type="button" className="close-button" aria-label="Close panel" onClick={closePanel}>×</button>
+        </header>
+        <div className="panel-content">
+          {panel === 'search' && <>
+            <label className="sr-only" htmlFor="location-search">Search locations and armies</label>
+            <input ref={searchInput} id="location-search" type="search" placeholder="Location or army…" value={query} onChange={event => setQuery(event.target.value)} />
+            <p className="result-count" role="status">{results.length} {results.length === 1 ? 'result' : 'results'}</p>
+            <ul className="search-results">{results.map(location => <li key={location.id}>
+              <button type="button" onClick={() => selectLocation(location)}>
+                <span>{location.name}</span>
+                <span className="result-meta"><span className={`allegiance-dot ${location.allegiance}`} />{location.type} · {allegianceLabels[location.allegiance]}</span>
+              </button>
+            </li>)}</ul>
+            {!results.length && <p className="muted">No locations match your search.</p>}
+          </>}
+          {panel === 'layers' && <>
+            <fieldset><legend>Show on map</legend>{markerTypes.map(type => <label className="layer-option" key={type}>
+              <input type="checkbox" checked={visibleTypes.includes(type)} onChange={event => setVisibleTypes(types => event.target.checked ? [...types, type] : types.filter(value => value !== type))} />{typeLabels[type]}
+            </label>)}</fieldset>
+            <div className="legend"><h2>Allegiance</h2>{Object.entries(allegianceLabels).map(([key, label]) => <div key={key}><span className={`allegiance-dot ${key}`} />{label}</div>)}</div>
+            {campaign.sampleMarkers && <p className="sample-note">Marker positions and reports are examples, not campaign intelligence.</p>}
+          </>}
+          {panel === 'details' && selected && <>
+            <p className="location-type">{selected.type === 'army' ? 'Army · last reported position' : selected.type}</p>
+            <p className={`allegiance-badge ${selected.allegiance}`}><span className="allegiance-dot" />{allegianceLabels[selected.allegiance]}</p>
+            <p className="description">{selected.description}</p>
+            <dl>
+              <div><dt>Faction</dt><dd>{selected.faction}</dd></div>
+              <div><dt>Intelligence</dt><dd>{intelAge === null ? 'No report' : intelAge === 0 ? 'Current day' : `${intelAge} campaign ${intelAge === 1 ? 'day' : 'days'} old`}</dd></div>
+              {selected.reportedOnDay !== null && <div><dt>Reported</dt><dd>Day {selected.reportedOnDay}</dd></div>}
+              <div><dt>Campaign date</dt><dd>Day {campaign.day}</dd></div>
+            </dl>
+            {campaign.sampleMarkers && <p className="sample-note">Sample marker · replace with player-known intelligence when the editor is available.</p>}
+          </>}
+        </div>
+      </aside>}
+    </main>
   )
 }

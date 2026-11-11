@@ -72,3 +72,5 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 6. Session-readiness checks for touch, orientation changes, recovery, offline status, and performance.
 
 The first usable campaign release should include all stages so it supports the shared table workflow.
+
+Current progress: steps 1–2 are implemented. The viewer uses the supplied Kislev image with clearly labeled sample markers and reports; campaign editing and saving are next.
