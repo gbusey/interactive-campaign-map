@@ -81,3 +81,32 @@ dd { margin: 5px 0 0; font-size: 14px; }
   .panel-content { padding-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .leaflet-zoom-animated, .leaflet-pan-anim .leaflet-tile, .leaflet-fade-anim .leaflet-popup { transition: none !important; } }
+/* Editing tools stay contextual; the map remains the primary surface. */
+.map-toolbar { max-width: calc(100% - 24px); flex-wrap: wrap; }
+.map-toolbar button { padding-inline: 10px; font-size: 14px; }
+.map-toolbar button[aria-pressed="true"] { background: #315461; color: white; }
+.edit-tools { position: absolute; z-index: 800; top: max(68px, calc(env(safe-area-inset-top) + 56px)); left: max(12px, env(safe-area-inset-left)); display: flex; gap: 6px; }
+.edit-tools button, .place-center, .placement-hint button, .storage-error button { min-height: 44px; border: 1px solid #bbbcb3; border-radius: 4px; background: #fffdf7; padding: 8px 12px; }
+button:disabled { cursor: default; opacity: .5; }
+.save-status { position: absolute; z-index: 800; bottom: max(84px, calc(env(safe-area-inset-bottom) + 56px)); left: max(12px, env(safe-area-inset-left)); font-size: 11px; padding: 4px 7px; border-radius: 4px; background: #fffdf7ed; max-width: calc(100% - 24px); pointer-events: none; }
+.storage-error { position: absolute; z-index: 900; bottom: 115px; left: 12px; right: 12px; max-height: 45%; overflow: auto; font-size: 13px; padding: 10px; border: 1px solid #a55; background: #fffdf7; border-radius: 4px; }
+.placement-hint { position: absolute; z-index: 800; left: 12px; right: 12px; top: max(68px, calc(env(safe-area-inset-top) + 56px)); padding: 8px; background: #fffdf7ed; border-radius: 4px; font-size: 12px; }
+.placement-hint button { min-height: 36px; margin-left: 6px; }
+.placement-crosshair { position: absolute; z-index: 790; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; color: #142c3c; font: 40px monospace; text-shadow: 1px 1px white, -1px -1px white; }
+.place-center { position: absolute; z-index: 800; left: 50%; top: calc(50% + 28px); transform: translateX(-50%); white-space: nowrap; }
+.editor-form { display: grid; gap: 14px; }
+.editor-form label { display: grid; gap: 6px; font-size: 13px; }
+.editor-form input, .editor-form select, .editor-form textarea { width: 100%; min-height: 44px; border: 1px solid #b2b4af; border-radius: 4px; padding: 9px; background: white; color: inherit; font: inherit; font-size: 16px; }
+.editor-form textarea { resize: vertical; }
+.editor-form select { text-transform: capitalize; }
+.editor-form button, .detail-actions button, .recovery-actions button { min-height: 44px; border: 1px solid #b2b4af; border-radius: 4px; padding: 9px 12px; background: #fffdf7; text-align: left; }
+.editor-form .muted { margin: 0; }
+.detail-actions, .recovery-actions { display: grid; gap: 8px; margin-top: 20px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.editor-form .primary-button { background: #315461; border-color: #315461; color: white; }
+.danger-button, .form-error { color: #a02b2b; }
+.form-error { margin-top: 12px; font-size: 13px; line-height: 1.6; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .map-toolbar button { font-size: 12px; padding-inline: 8px; }
+  .placement-hint { top: 62px; font-size: 11px; }
+}

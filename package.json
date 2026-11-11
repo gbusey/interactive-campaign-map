@@ -10,7 +10,8 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --experimental-strip-types --experimental-test-isolation=none --test tests/*.test.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
