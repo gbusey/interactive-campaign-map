@@ -59,7 +59,7 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 - Assign terrain manually per segment. Automatic road following or terrain detection is outside the initial scope because the image contains no routing data.
 - Use the party's limiting travel Speed and PF2e travel rates: Speed 20/25/30 feet corresponds to 2/2.5/3 miles per hour, or 16/20/24 miles per standard 8-hour travel day.
 - Difficult terrain halves travel speed; greater difficult terrain reduces it to one-third. Calculate time per segment and sum it for mixed terrain.
-- Display total miles, travel hours, and travel days. Support configurable daily travel hours, relevant exploration activity adjustments, and explicit GM overrides for weather or campaign effects. Army travel uses separate configurable profiles.
+- Lead with travel days and show arrival day, total distance, and movement hours. Default to 8 travel hours per day and allow up to 16. Flag days that exceed 8 hours for the GM to adjudicate fatigue. Use a pace adjustment for exploration activities or GM overrides, and a separate configurable army pace.
 - Draft routes and viewing preferences remain personal. Shared named routes are a possible later addition; map entities, intel, campaign date, and scale are shared.
 
 ## Build sequence
@@ -73,4 +73,4 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 The first usable campaign release should include all stages so it supports the shared table workflow.
 
-Current progress: steps 1–4 are implemented. The editor supports local drafts and GitHub publishing, and viewers check for updates from Pages. Route measurement and travel estimates are next.
+Current progress: steps 1–5 are implemented. The map supports shared publishing and local route planning. Session-readiness checks are next.

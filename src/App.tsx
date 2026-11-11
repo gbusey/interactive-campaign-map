@@ -5,8 +5,11 @@ import type { Location, MarkerType } from './campaign'
 import MapViewer from './MapViewer'
 import LocationEditor from './LocationEditor'
 import { downloadText, useCampaign } from './useCampaign'
+import TravelPanel, { defaultTravelSettings } from './TravelPanel'
+import { defaultTravelScale } from './travel'
+import type { MapPoint, TravelScale, Waypoint } from './travel'
 
-type Panel = 'search' | 'layers' | 'details' | 'editor' | 'campaign' | null
+type Panel = 'search' | 'layers' | 'details' | 'editor' | 'campaign' | 'travel' | null
 export default function App() {
   const [editMode, setEditMode] = useState(false)
   const [publishingToken, setPublishingToken] = useState('')
@@ -20,6 +23,11 @@ export default function App() {
   const dirtyRef = useRef(false)
   dirtyRef.current = dirty
   const [placement, setPlacement] = useState<'add' | 'move' | null>(null)
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([])
+  const [travelSettings, setTravelSettings] = useState(defaultTravelSettings)
+  const [calibration, setCalibration] = useState<MapPoint[] | null>(null)
+  const travelOpen = panel === 'travel'
+  const scale = data.travelScale ?? defaultTravelScale
   const [query, setQuery] = useState('')
   const [dayDraft, setDayDraft] = useState(String(data.day))
   const [notice, setNotice] = useState('')
@@ -33,12 +41,12 @@ export default function App() {
   const selected = data.locations.find(location => location.id === selectedId) ?? null
   const canLeave = useCallback(() => !dirtyRef.current || window.confirm('Discard unsaved marker changes?'), [])
   const markDirty = (value: boolean) => { dirtyRef.current = value; setDirty(value) }
-  const clearForm = () => { setEditor(null); markDirty(false); setPlacement(null); setConfirmDelete(false) }
+  const clearForm = () => { setEditor(null); markDirty(false); setPlacement(null); setConfirmDelete(false); setCalibration(null) }
 
   const selectLocation = useCallback((location: Location) => {
     if (!canLeave()) return
     previousFocus.current = document.activeElement as HTMLElement
-    setEditor(null); setDirty(false); dirtyRef.current = false; setPlacement(null); setConfirmDelete(false)
+    setEditor(null); setDirty(false); dirtyRef.current = false; setPlacement(null); setConfirmDelete(false); setCalibration(null)
     setVisibleTypes(types => types.includes(location.type) ? types : [...types, location.type])
     setSelectedId(location.id)
     setPanel('details')
@@ -71,14 +79,15 @@ export default function App() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (placement) setPlacement(null)
+      if (calibration) setCalibration(null)
+      else if (placement) setPlacement(null)
       else if (panel) closePanel()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   })
 
-  function togglePanel(next: 'search' | 'layers' | 'campaign') {
+  function togglePanel(next: 'search' | 'layers' | 'campaign' | 'travel') {
     if (panel === next) { closePanel(); return }
     if (!canLeave()) return
     previousFocus.current = document.activeElement as HTMLElement
@@ -99,6 +108,31 @@ export default function App() {
     if (placement !== 'add') return
     setEditor({ id: crypto.randomUUID(), name: '', type: 'village', allegiance: 'neutral', x, y, faction: '', description: '', reportedOnDay: null })
     markDirty(true); setPlacement(null); setPanel('editor')
+  }
+  function placePoint(x: number, y: number) {
+    if (!travelOpen) { placeMarker(x, y); return }
+    if (calibration) {
+      setCalibration(points => points && points.length < 2 ? [...points, { x, y }] : points)
+      return
+    }
+    setWaypoints(points => {
+      const previous = points.at(-1)
+      return previous?.x === x && previous.y === y ? points : [...points, { x, y, terrain: 'clear' }]
+    })
+  }
+  const moveWaypoint = useCallback((index: number, point: MapPoint) => {
+    setWaypoints(points => points.map((current, i) => i === index ? { ...current, ...point } : current))
+  }, [])
+  function saveTravelScale(travelScale: TravelScale) {
+    const next = { ...data, travelScale }
+    if (travelScale.pixelsPer100ImperialMiles === defaultTravelScale.pixelsPer100ImperialMiles
+      && travelScale.milesPerImperialMile === defaultTravelScale.milesPerImperialMile) {
+      const { travelScale: _scale, ...defaultScaleCampaign } = next
+      if (!store.replace(defaultScaleCampaign)) return false
+    } else if (!store.replace(next)) return false
+    setCalibration(null)
+    setNotice('Map scale saved locally')
+    return true
   }
   function beginAdd() {
     if (!canLeave()) return
@@ -132,7 +166,11 @@ export default function App() {
 
   return <main className={`map-app${panel ? ' panel-open' : ''}`}>
     <section className="map-area" aria-label="Map viewer">
-      <MapViewer locations={data.locations} visibleTypes={visibleTypes} selected={selected} editable={editMode && !editor} placing={!!placement} onSelect={selectLocation} onMove={moveMarker} onPlace={placeMarker} />
+      <MapViewer locations={data.locations} visibleTypes={visibleTypes} selected={selected}
+        editable={editMode && !editor && !travelOpen} placing={!!placement || (travelOpen && (calibration?.length ?? 0) < 2)}
+        placingWaypoint={travelOpen && !calibration} calibrating={!!calibration}
+        routePoints={travelOpen ? calibration ?? waypoints : undefined} onMoveWaypoint={travelOpen && !calibration ? moveWaypoint : undefined}
+        onSelect={selectLocation} onMove={moveMarker} onPlace={placePoint} />
       <nav className="map-toolbar" aria-label="Map tools">
         <button ref={searchButton} type="button" aria-expanded={panel === 'search'} aria-controls={panel === 'search' ? 'map-panel' : undefined} onClick={() => togglePanel('search')}>Search</button>
         <button type="button" aria-expanded={panel === 'layers'} aria-controls={panel === 'layers' ? 'map-panel' : undefined} onClick={() => togglePanel('layers')}>Layers</button>
@@ -142,8 +180,9 @@ export default function App() {
           if (panel === 'editor') setPanel(selected ? 'details' : null)
         }}>{editMode ? 'Editing' : 'Edit'}</button>
         <button type="button" aria-expanded={panel === 'campaign'} aria-controls={panel === 'campaign' ? 'map-panel' : undefined} onClick={() => togglePanel('campaign')}>Campaign</button>
+        <button type="button" aria-expanded={travelOpen} aria-controls={travelOpen ? 'map-panel' : undefined} onClick={() => togglePanel('travel')}>Travel</button>
       </nav>
-      {editMode && !placement && <div className="edit-tools"><button type="button" onClick={beginAdd}>Add marker</button><button type="button" disabled={!store.canUndo} onClick={undo}>Undo</button></div>}
+      {editMode && !placement && !travelOpen && <div className="edit-tools"><button type="button" onClick={beginAdd}>Add marker</button><button type="button" disabled={!store.canUndo} onClick={undo}>Undo</button></div>}
       {placement && <div className="placement-hint" role="status">{placement === 'add' ? 'Place new marker' : `Move ${selected?.name}`} · tap inside map or use crosshair <button type="button" onClick={() => setPlacement(null)}>Cancel</button></div>}
       <div className="save-status" role="status">
         {data.sampleMarkers && 'Sample · '}
@@ -154,9 +193,13 @@ export default function App() {
     </section>
 
     {panel && <aside id="map-panel" className="map-panel" aria-labelledby="panel-title">
-      <header className="panel-header"><h1 ref={heading} tabIndex={-1} id="panel-title">{panel === 'search' ? 'Search' : panel === 'layers' ? 'Layers' : panel === 'campaign' ? 'Campaign' : panel === 'editor' ? (selected ? 'Edit marker' : 'New marker') : selected?.name ?? 'Marker'}</h1><button type="button" className="close-button" aria-label="Close panel" onClick={closePanel}>×</button></header>
+      <header className="panel-header"><h1 ref={heading} tabIndex={-1} id="panel-title">{panel === 'search' ? 'Search' : panel === 'layers' ? 'Layers' : panel === 'campaign' ? 'Campaign' : panel === 'travel' ? 'Travel' : panel === 'editor' ? (selected ? 'Edit marker' : 'New marker') : selected?.name ?? 'Marker'}</h1><button type="button" className="close-button" aria-label="Close panel" onClick={closePanel}>×</button></header>
       <div className="panel-content">
         {store.editError && <p className="form-error" role="alert">{store.editError}</p>}
+        {travelOpen && <TravelPanel points={waypoints} settings={travelSettings} scale={scale} editable={editMode} calibration={calibration}
+          onSettings={setTravelSettings} onTerrain={(index, terrain) => setWaypoints(points => points.map((point, i) => i === index ? { ...point, terrain } : point))}
+          onRemove={index => setWaypoints(points => points.filter((_, i) => i !== index))} onClear={() => setWaypoints([])}
+          onCalibrate={() => setCalibration([])} onCancelCalibration={() => setCalibration(null)} onSaveScale={saveTravelScale} />}
         {panel === 'search' && <>
           <label className="sr-only" htmlFor="location-search">Search locations and armies</label>
           <input ref={searchInput} id="location-search" type="search" placeholder="Location or army…" value={query} onChange={event => setQuery(event.target.value)} />
