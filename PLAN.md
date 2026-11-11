@@ -22,6 +22,14 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 - Army positions represent their last reported positions.
 - Search locations and toggle map layers; reveal labels progressively as users zoom in.
 
+## UI design principle
+
+- **Minimalism:** prioritize the map and the task at hand. Everyone using the app already understands its purpose.
+- No introductory copy, persistent page titles, descriptions along the top or sides, decorative branding, or promotional content in the finished app.
+- Keep controls compact and purposeful. Show location details, editor forms, and travel tools contextually in dismissible panels rather than permanently occupying map space.
+- Preserve clear control labels, touch-friendly targets, accessible names, and concise save/update/error feedback. Minimalism should reduce distractions without obscuring functionality.
+- Replace the foundation release's introductory shell when implementing the map viewer.
+
 ## Interaction and responsive layout
 
 - Separate **Browse**, **Edit**, and **Measure** modes to prevent accidental changes.
