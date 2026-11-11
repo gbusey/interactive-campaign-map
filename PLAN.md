@@ -56,9 +56,11 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 ## Build sequence
 
-1. Map display, navigation, marker types, allegiance colors, and information panels.
-2. Responsive editor, campaign clock, intel age, undo, local saving, and backup import/export.
-3. Scale calibration, waypoint routes, terrain segments, and PF2e travel estimates.
-4. GitHub publishing, automatic viewer updates, status feedback, and stale-version protection.
+1. React/TypeScript/Vite foundation, responsive app shell, and GitHub Pages deployment. Pull requests build for validation; changes to `main` deploy through GitHub Actions.
+2. Responsive map display, navigation, marker types, allegiance colors, and information panels. Verify laptop and both phone orientations early.
+3. Editor, campaign clock, intel age, undo, local saving, and backup import/export.
+4. GitHub publishing, automatic viewer updates, status feedback, and stale-version protection. Verify a laptop edit reaches a phone.
+5. Scale calibration, waypoint routes, terrain segments, and PF2e travel estimates.
+6. Session-readiness checks for touch, orientation changes, recovery, offline status, and performance.
 
-The initial release should include all four stages so it supports the shared table workflow.
+The first usable campaign release should include all stages so it supports the shared table workflow.
