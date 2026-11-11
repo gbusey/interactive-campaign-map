@@ -185,7 +185,6 @@ export default function App() {
       {editMode && !placement && !travelOpen && <div className="edit-tools"><button type="button" onClick={beginAdd}>Add marker</button><button type="button" disabled={!store.canUndo} onClick={undo}>Undo</button></div>}
       {placement && <div className="placement-hint" role="status">{placement === 'add' ? 'Place new marker' : `Move ${selected?.name}`} · tap inside map or use crosshair <button type="button" onClick={() => setPlacement(null)}>Cancel</button></div>}
       <div className="save-status" role="status">
-        {data.sampleMarkers && 'Sample · '}
         {store.error ? 'Local save needs attention' : dirty ? 'Unsaved marker form' : store.status}
       </div>
       {store.error && <div className="storage-error" role="alert">{store.error} <button type="button" onClick={() => togglePanel('campaign')}>Backups</button></div>}
@@ -210,7 +209,6 @@ export default function App() {
         {panel === 'layers' && <>
           <fieldset><legend>Show on map</legend>{markerTypes.map(type => <label className="layer-option" key={type}><input type="checkbox" checked={visibleTypes.includes(type)} onChange={event => setVisibleTypes(types => event.target.checked ? [...types, type] : types.filter(value => value !== type))} />{typeLabels[type]}</label>)}</fieldset>
           <div className="legend"><h2>Allegiance</h2>{Object.entries(allegianceLabels).map(([key, label]) => <div key={key}><span className={`allegiance-dot ${key}`} />{label}</div>)}</div>
-          {data.sampleMarkers && <p className="sample-note">This dataset contains sample markers and reports.</p>}
         </>}
         {panel === 'editor' && editor && <LocationEditor key={editor.id} initial={editor} day={data.day} onSave={saveMarker} onDirty={markDirty} onCancel={closePanel} />}
         {panel === 'details' && selected && <>
@@ -227,14 +225,12 @@ export default function App() {
             <button type="button" onClick={() => setPlacement('move')}>Move on map</button>
             <button type="button" className="danger-button" onClick={() => setConfirmDelete(true)}>Delete marker</button>
           </div>)}
-          {data.sampleMarkers && <p className="sample-note">Sample campaign data.</p>}
         </>}
         {panel === 'campaign' && <>
           {editMode ? <form className="editor-form" onSubmit={event => { event.preventDefault(); if (store.replace({ ...data, day: Number(dayDraft) })) setNotice('Campaign date saved locally') }}>
             <label>Campaign day<input type="number" required min={latestReport} max={Number.MAX_SAFE_INTEGER} step={1} value={dayDraft} onChange={event => setDayDraft(event.target.value)} /></label>
             <button type="submit">Set day</button><p className="muted">Reports age with the campaign clock. Day cannot precede an existing report (day {latestReport}).</p>
           </form> : <p>Campaign day {data.day}</p>}
-          {editMode && <label className="layer-option"><input type="checkbox" checked={data.sampleMarkers} onChange={event => store.replace({ ...data, sampleMarkers: event.target.checked })} />Sample dataset</label>}
           {store.conflict && <div className="detail-actions">
             <p className="form-error" role="alert">A newer published version is available. Export your draft to keep a copy before loading it.</p>
             <button type="button" disabled={store.publishing} onClick={() => {
@@ -271,7 +267,7 @@ export default function App() {
           {store.needsRecovery && <div className="recovery-actions">
             {store.recoveryRaw && <button type="button" onClick={() => downloadText(store.recoveryRaw, 'kislev-unreadable-draft.json')}>Export unreadable draft</button>}
             <button type="button" onClick={() => { if (window.confirm('Replace the saved draft with the campaign currently visible? Export the unreadable draft first if needed.')) { store.resumeSaving(); setNotice('Local saving resumed') } }}>Use current campaign</button>
-            <button type="button" onClick={() => { if (window.confirm('Restore the bundled sample campaign? Export the preserved draft first if needed.')) { store.replace(initialCampaign); store.resumeSaving() } }}>Restore sample campaign</button>
+            <button type="button" onClick={() => { if (window.confirm('Restore the bundled campaign? Export the preserved draft first if needed.')) { store.replace(initialCampaign); store.resumeSaving() } }}>Restore bundled campaign</button>
           </div>}
           {notice && store.changed && <p className="muted">{notice}</p>}
         </>}

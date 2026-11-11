@@ -73,4 +73,4 @@ A shared map for a PF2e war campaign set in Kislev in the Warhammer Fantasy univ
 
 The first usable campaign release should include all stages so it supports the shared table workflow.
 
-Current progress: steps 1–5 are implemented. The map supports shared publishing and local route planning. Session-readiness checks are next.
+The planned features are implemented. The first campaign session will be the next chance to check how the map works at the table.

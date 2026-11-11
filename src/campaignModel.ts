@@ -21,6 +21,7 @@ export interface CampaignData {
   schemaVersion: 1
   mapId: 'kislev'
   day: number
+  /** Retained for compatibility with existing version 1 campaigns and backups. */
   sampleMarkers: boolean
   locations: Location[]
   travelScale?: TravelScale
@@ -39,6 +40,18 @@ function integer(value: unknown): value is number {
 function text(value: unknown, max: number): value is string {
   return typeof value === 'string' && value.length <= max
 }
+
+// Normalize the original built-in descriptions when loading older campaigns.
+// Exact matches preserve descriptions written or changed by campaign editors.
+const legacyDescriptions = new Map([
+  ['The campaign’s southern city. Example report for testing the viewer.', 'The campaign’s southern city.'],
+  ['Control of the city is disputed in this example report.', 'Control of the city is disputed.'],
+  ['No intelligence report has been recorded in this example.', 'No intelligence report has been recorded.'],
+  ['An example garrison report from the northern frontier.', 'Garrison report from the northern frontier.'],
+  ['An example village report along the northern routes.', 'Village report from the northern routes.'],
+  ['An illustrative army marker. This is its last reported position, not a live position.', 'Last reported position of the Northern host.'],
+])
+
 export function validateCampaign(value: unknown): CampaignData {
   if (!record(value) || value.schemaVersion !== 1 || value.mapId !== 'kislev') throw new Error('This is not a supported Kislev campaign backup (version 1).')
   if (!integer(value.day) || typeof value.sampleMarkers !== 'boolean' || !Array.isArray(value.locations) || value.locations.length > 5000) throw new Error('Invalid campaign date or marker list.')
@@ -56,7 +69,7 @@ export function validateCampaign(value: unknown): CampaignData {
       throw new Error(`Invalid or duplicate marker at position ${index + 1}. Check its fields, coordinates, and report date.`)
     }
     ids.add(item.id)
-    return { id: item.id, name: item.name, type: item.type as MarkerType, allegiance: item.allegiance as Allegiance, x: item.x, y: item.y, description: item.description, faction: item.faction, reportedOnDay: item.reportedOnDay as number | null }
+    return { id: item.id, name: item.name, type: item.type as MarkerType, allegiance: item.allegiance as Allegiance, x: item.x, y: item.y, description: legacyDescriptions.get(item.description) ?? item.description, faction: item.faction, reportedOnDay: item.reportedOnDay as number | null }
   })
   return { schemaVersion: 1, mapId: 'kislev', day: value.day, sampleMarkers: value.sampleMarkers, locations, ...(scale && { travelScale: {
     pixelsPer100ImperialMiles: scale.pixelsPer100ImperialMiles,

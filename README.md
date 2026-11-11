@@ -1,71 +1,39 @@
 # Kislev Campaign Map
 
-A shared map for a PF2e war campaign in Kislev. Built with React, TypeScript, Vite, and Leaflet, and hosted on GitHub Pages. See [PLAN.md](PLAN.md) for the full plan.
+An interactive campaign atlas for a Pathfinder Second Edition game set in Kislev, from Warhammer Fantasy. The game master tracks settlements, armies, and their last known allegiance. Players follow changes on their phones and use the same map to estimate travel.
 
-## Map viewer
+**[Open the live map](https://gbusey.github.io/interactive-campaign-map/)** · [Project plan](PLAN.md)
 
-- Pan by dragging; zoom with the mouse wheel, pinch gestures, or +/− controls. **Fit map** returns to the full image.
-- Click or tap a city, fortress, village, or army for its allegiance, description, faction, and intelligence age in campaign days.
-- **Search** finds locations and armies, including those on hidden layers. Selecting a result reveals its layer and centers the marker.
-- **Layers** toggles marker types and shows the allegiance color legend. Labels appear as you zoom in.
-- Details and tools use a side panel on desktop/landscape phones and a bottom panel on portrait phones. Close with × or Escape.
-- The map supports keyboard panning/zooming when focused, and Enter or Space activates focused markers.
+## What you can do
 
-The viewer uses `data/Map-Kislev-1-Color.jpg` (2829 × 2000). The bundled sample data is in `src/campaign.ts`; the versioned data format and map dimensions are in `src/campaignModel.ts`. Coordinates are image pixels measured from the top-left, independent of zoom.
+- **Explore the campaign.** Pan and zoom, search for locations, filter marker layers, and inspect reports. Each report shows its age in campaign days.
+- **Update the map during play.** Add, move, and edit markers, advance the campaign clock, and undo changes. Edits autosave in your browser and can be exported as a JSON backup.
+- **Share changes with the table.** Publish a draft from the editor. Open viewers receive the new campaign data after deployment while keeping their map position and zoom.
+- **Plan a journey.** Plot waypoints and choose the terrain for each leg. The calculator shows travel days, arrival day, hours on the move, and total distance. Travel defaults to eight hours a day and supports up to sixteen. [PF2e travel rules](https://2e.aonprd.com/Rules.aspx?ID=2441)
 
-## Editing the campaign
+## How it works
 
-1. Select **Edit**. Use **Add marker**, then click/tap the map or choose **Place at crosshair**. Fill the form and select **Save marker**.
-2. Drag a marker to move it, or use **Move on map** in its details. **Edit details** changes its fields; **Report today** explicitly updates the report date.
-3. Open **Campaign** to set the campaign day. Reports age automatically; ordinary edits keep their original report dates. **Undo** reverses up to 50 changes in the current session.
-4. Saved changes are stored in this browser. Use **Campaign → Export backup** for a separate copy. In Edit mode, **Import backup** validates the file before replacing the campaign; the replacement can be undone.
+The app uses **React**, **TypeScript**, **Leaflet**, and **Vite**. Leaflet renders a 2,829 × 2,000 image in a flat coordinate system. Routes use coordinates on the original image, so distances stay consistent at every zoom level. The printed scale converts pixel lengths to imperial miles, and the calculator applies the selected terrain to each leg’s travel time.
 
-The initial campaign is labeled sample data. To begin with a clean slate, choose **Edit → Campaign → Start empty campaign**. You can also edit the sample markers and turn off **Sample dataset** when the data is ready. Drafts stay in your browser until you publish.
+GitHub Pages serves the app and a versioned campaign JSON file. The editor uses the GitHub Contents API to commit updates. It checks the file revision before writing to protect newer published data from stale drafts. Viewers check for changes about every 30 seconds while the tab is visible and when they return to it.
 
-## Publishing and viewer updates
+## Run locally
 
-1. Create a [fine-grained GitHub token](https://github.com/settings/personal-access-tokens/new) for `gbusey/interactive-campaign-map` with **Contents → Read and write**. The token's account needs permission to commit directly to `main`.
-2. Open **Edit → Campaign**, enter the token, and choose **Publish changes**. The page keeps the token in memory until you clear it or reload. The publish action commits `public/campaign.json` to `main` and triggers the Pages workflow. [GitHub Contents API permissions](https://docs.github.com/en/rest/repos/contents#create-or-update-file-contents)
-3. Once Pages deploys the commit, viewers in Browse mode pick it up on the next check, about every 30 seconds while the page is visible. Returning to the tab or choosing **Campaign → Check for updates** checks sooner.
-
-If a newer version exists, publishing stops and preserves your draft. Export it before choosing **Load published campaign**, then reapply your edits to the latest version. A draft from step 3 can publish directly if Pages still serves the original sample campaign.
-
-## Local development
-
-Use Node.js 22.12 or newer (Node 22 is specified in `.nvmrc`).
+Use Node.js 22.12 or newer.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite, including `/interactive-campaign-map/`.
+Open the URL printed by Vite. Run `npm test` for the campaign, publishing, and travel tests, or `npm run build` to type-check and build the site. Run `npm run preview` to serve the production build locally.
 
-```sh
-npm run typecheck   # Check TypeScript
-npm test            # Validate backups, campaign dates, undo, and draft recovery
-npm run build       # Type-check and build static files into dist/
-npm run preview     # Serve the production build locally
-```
+## Publishing a campaign
 
-## Deployment
+1. Create a fine-grained GitHub token scoped to `gbusey/interactive-campaign-map` with **Contents → Read and write**. Use an account that can commit directly to `main`. [Create a token](https://github.com/settings/personal-access-tokens/new)
+2. Open **Edit → Campaign**, enter the token, and select **Publish changes**. The token stays in page memory until you clear it or reload.
+3. GitHub Actions builds and deploys the commit to Pages. Viewers pick up the new version on their next check.
 
-In repository Settings → Pages, set Source to **GitHub Actions**.
+Use **Campaign → Export backup** to keep a separate copy. In Edit mode, **Import backup** restores a validated snapshot, and **Start empty campaign** clears the map so you can begin again. If a newer version blocks publishing, export your draft, load the published campaign, and reapply your changes.
 
-- Pull requests targeting `main` run tests and the production build without deploying.
-- Pushes to `main` build and deploy `dist/` to Pages.
-- The workflow can also be run manually; only runs on `main` deploy.
-- No separate deployment branch or committed build output is needed.
-- The deployment workflow uses GitHub's built-in token. The editor's publishing token is entered in the browser.
-
-Once merged and deployed, the site will be available at <https://gbusey.github.io/interactive-campaign-map/>. The feature branch does not publish to the live site.
-
-`vite.config.ts` sets the asset base to `/interactive-campaign-map/`. Update it if the repository name or hosting path changes. The app currently has one entry page and does not require server-side routing.
-
-## Travel calculator
-
-Open **Travel**, then tap the map or settlement markers to add waypoints. You can also pan and use **Add waypoint at crosshair**. Drag the numbered points to adjust the route and set the terrain for each leg. The result shows travel days, arrival day, hours on the move, and total imperial miles.
-
-Enter the party's Speed in feet and choose how many hours to travel each day. The default is 8 hours, and the planner accepts up to 16. It flags each planned day with more than 8 hours of movement. PF2e uses fatigue rules for prolonged travel, so Fortitude saves for extended days are a table rule. [Player Core travel rates](https://2e.aonprd.com/Rules.aspx?ID=2441)
-
-Routes and pace settings stay in your open tab. The map uses its printed 100-mile scale. To adjust the shared scale, open **Edit → Travel → Map scale and rules**, choose **Calibrate from scale bar**, and select the 0 and 100 ticks. Publish the saved calibration with your next campaign update.
+Pull requests to `main` run tests and build checks. Changes to `main` also deploy to GitHub Pages.
