@@ -1,3 +1,6 @@
+import { isTravelScale } from './travel.ts'
+import type { TravelScale } from './travel.ts'
+
 export const markerTypes = ['city', 'fortress', 'village', 'army'] as const
 export const allegiances = ['friendly', 'hostile', 'contested', 'neutral'] as const
 export type MarkerType = (typeof markerTypes)[number]
@@ -20,6 +23,7 @@ export interface CampaignData {
   day: number
   sampleMarkers: boolean
   locations: Location[]
+  travelScale?: TravelScale
 }
 export const MAP_WIDTH = 2829
 export const MAP_HEIGHT = 2000
@@ -38,6 +42,8 @@ function text(value: unknown, max: number): value is string {
 export function validateCampaign(value: unknown): CampaignData {
   if (!record(value) || value.schemaVersion !== 1 || value.mapId !== 'kislev') throw new Error('This is not a supported Kislev campaign backup (version 1).')
   if (!integer(value.day) || typeof value.sampleMarkers !== 'boolean' || !Array.isArray(value.locations) || value.locations.length > 5000) throw new Error('Invalid campaign date or marker list.')
+  const scale = value.travelScale
+  if (scale !== undefined && !isTravelScale(scale)) throw new Error('Invalid map travel scale.')
   const day = value.day
   const ids = new Set<string>()
   const locations = value.locations.map((item, index): Location => {
@@ -52,7 +58,10 @@ export function validateCampaign(value: unknown): CampaignData {
     ids.add(item.id)
     return { id: item.id, name: item.name, type: item.type as MarkerType, allegiance: item.allegiance as Allegiance, x: item.x, y: item.y, description: item.description, faction: item.faction, reportedOnDay: item.reportedOnDay as number | null }
   })
-  return { schemaVersion: 1, mapId: 'kislev', day: value.day, sampleMarkers: value.sampleMarkers, locations }
+  return { schemaVersion: 1, mapId: 'kislev', day: value.day, sampleMarkers: value.sampleMarkers, locations, ...(scale && { travelScale: {
+    pixelsPer100ImperialMiles: scale.pixelsPer100ImperialMiles,
+    milesPerImperialMile: scale.milesPerImperialMile,
+  } }) }
 }
 export function parseCampaign(raw: string): CampaignData {
   if (new TextEncoder().encode(raw).byteLength > MAX_BACKUP_BYTES) throw new Error('Backup exceeds the 2 MB limit.')

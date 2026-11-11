@@ -62,6 +62,10 @@ Once merged and deployed, the site will be available at <https://gbusey.github.i
 
 `vite.config.ts` sets the asset base to `/interactive-campaign-map/`. Update it if the repository name or hosting path changes. The app currently has one entry page and does not require server-side routing.
 
-## Next steps
+## Travel calculator
 
-Route measurement and PF2e travel calculations.
+Open **Travel**, then tap the map or settlement markers to add waypoints. You can also pan and use **Add waypoint at crosshair**. Drag the numbered points to adjust the route and set the terrain for each leg. The result shows travel days, arrival day, hours on the move, and total imperial miles.
+
+Enter the party's Speed in feet and choose how many hours to travel each day. The default is 8 hours, and the planner accepts up to 16. It flags each planned day with more than 8 hours of movement. PF2e uses fatigue rules for prolonged travel, so Fortitude saves for extended days are a table rule. [Player Core travel rates](https://2e.aonprd.com/Rules.aspx?ID=2441)
+
+Routes and pace settings stay in your open tab. The map uses its printed 100-mile scale. To adjust the shared scale, open **Edit → Travel → Map scale and rules**, choose **Calibrate from scale bar**, and select the 0 and 100 ticks. Publish the saved calibration with your next campaign update.

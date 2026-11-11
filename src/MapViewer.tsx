@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { allegianceLabels, campaign } from './campaign'
 import type { Location, MarkerType } from './campaign'
 import { markerSvg } from './markerIcons'
+import type { MapPoint } from './travel'
 
 interface Props {
   visibleTypes: MarkerType[]
@@ -11,21 +12,37 @@ interface Props {
   locations: Location[]
   editable: boolean
   placing: boolean
+  placingWaypoint?: boolean
+  calibrating?: boolean
+  routePoints?: MapPoint[]
+  onMoveWaypoint?: (index: number, point: MapPoint) => void
   onSelect: (location: Location) => void
   onMove: (id: string, x: number, y: number) => void
   onPlace: (x: number, y: number) => void
 }
 
-export default function MapViewer({ visibleTypes, selected, locations, editable, placing, onSelect, onMove, onPlace }: Props) {
+const toLatLng = (point: MapPoint): L.LatLngTuple => [campaign.height - point.y, point.x]
+
+function imagePoint(point: L.LatLng): MapPoint {
+  return {
+    x: Math.max(0, Math.min(campaign.width, point.lng)),
+    y: Math.max(0, Math.min(campaign.height, campaign.height - point.lat)),
+  }
+}
+
+export default function MapViewer({
+  visibleTypes, selected, locations, editable, placing, placingWaypoint, calibrating, routePoints, onMoveWaypoint,
+  onSelect, onMove, onPlace,
+}: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const markers = useRef(new Map<string, L.Marker>())
-  const actions = useRef({ onSelect, onMove, onPlace, placing, locations })
+  const actions = useRef({ onSelect, onMove, onPlace, placing, placingWaypoint, calibrating, locations })
   const selectedRef = useRef(selected)
   const [imageFailed, setImageFailed] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [retry, setRetry] = useState(0)
-  actions.current = { onSelect, onMove, onPlace, placing, locations }
+  actions.current = { onSelect, onMove, onPlace, placing, placingWaypoint, calibrating, locations }
   selectedRef.current = selected
 
   useEffect(() => {
@@ -81,17 +98,20 @@ export default function MapViewer({ visibleTypes, selected, locations, editable,
       let marker = markers.current.get(location.id)
       if (!marker) {
         const id = location.id
+        const activate = () => {
+          const { locations, placingWaypoint, placing, calibrating, onPlace, onSelect } = actions.current
+          const current = locations.find(item => item.id === id)
+          if (!current) return
+          if (placingWaypoint) onPlace(current.x, current.y)
+          else if (!placing && !calibrating) onSelect(current)
+        }
         marker = L.marker([campaign.height - location.y, location.x], { keyboard: true, riseOnHover: true, draggable: true })
-          .on('click', () => {
-            const current = actions.current.locations.find(item => item.id === id)
-            if (current && !actions.current.placing) actions.current.onSelect(current)
-          })
+          .on('click', activate)
           .on('keydown', event => {
             const key = (event as L.LeafletKeyboardEvent).originalEvent
             if (key.key === 'Enter' || key.key === ' ') {
               L.DomEvent.stop(key)
-              const current = actions.current.locations.find(item => item.id === id)
-              if (current && !actions.current.placing) actions.current.onSelect(current)
+              activate()
             }
           })
           .on('dragend', event => {
@@ -130,6 +150,39 @@ export default function MapViewer({ visibleTypes, selected, locations, editable,
     }
   }, [locations, visibleTypes, selected, editable, placing, retry])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !routePoints?.length) return
+    const group = L.layerGroup().addTo(map)
+    const positions = routePoints.map(toLatLng)
+    const outline = L.polyline(positions, { color: '#fffdf7', weight: 7, interactive: false }).addTo(group)
+    const line = L.polyline(positions, { color: '#573b8d', weight: 4, interactive: false }).addTo(group)
+    positions.forEach((position, index) => {
+      const label = calibrating ? (index === 0 ? '0' : '100') : String(index + 1)
+      const waypoint = L.marker(position, {
+        icon: L.divIcon({ className: 'route-waypoint', html: `<span>${label}</span>`, iconSize: [40, 40], iconAnchor: [20, 20] }),
+        title: calibrating ? `${label} mile tick` : `Waypoint ${label}`,
+        draggable: !!onMoveWaypoint,
+        keyboard: false,
+        zIndexOffset: 1500,
+      }).addTo(group)
+      if (onMoveWaypoint) {
+        waypoint.on('drag', () => {
+          positions[index] = toLatLng(imagePoint(waypoint.getLatLng()))
+          outline.setLatLngs(positions)
+          line.setLatLngs(positions)
+        })
+        waypoint.on('dragend', () => onMoveWaypoint(index, imagePoint(waypoint.getLatLng())))
+      }
+    })
+    return () => { group.remove() }
+  }, [routePoints, calibrating, onMoveWaypoint, retry])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (calibrating && map) map.setView(toLatLng({ x: 2433, y: 1865 }), Math.max(0.25, map.getZoom()), { animate: false })
+  }, [calibrating, retry])
+
   const selectedId = selected?.id
   useEffect(() => {
     const location = selectedRef.current
@@ -138,13 +191,13 @@ export default function MapViewer({ visibleTypes, selected, locations, editable,
 
   return (
     <>
-      <div ref={container} className="map-canvas" role="region" aria-label="Campaign map" />
+      <div ref={container} className={`map-canvas${placing ? ' map-placing' : ''}`} role="region" aria-label="Campaign map" />
       {placing && <>
         <span className="placement-crosshair" aria-hidden="true">+</span>
         <button className="place-center" type="button" onClick={() => {
           const point = mapRef.current?.getCenter()
           if (point && point.lng >= 0 && point.lng <= campaign.width && point.lat >= 0 && point.lat <= campaign.height) onPlace(Math.round(point.lng), Math.round(campaign.height - point.lat))
-        }}>Place at crosshair</button>
+        }}>{placingWaypoint ? 'Add waypoint at crosshair' : calibrating ? 'Select tick at crosshair' : 'Place at crosshair'}</button>
       </>}
       {!imageLoaded && !imageFailed && <span className="map-loading" role="status">Loading map…</span>}
       <div className="map-navigation" role="group" aria-label="Map navigation">
